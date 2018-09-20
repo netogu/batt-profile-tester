@@ -5,23 +5,30 @@ import os
 class profile_state_machine():
     """ Run through profile defined in CSV file."""
 
-    def __init__(self, csv_reader):
-        self.reader = csv_reader
-        self.row = next(csv_reader)
+    def __init__(self, file):
+        self.reader = csv.DictReader(file)
+        self.get_number_of_steps()
+        print('Profile has {} steps'.format(self.no_profile_steps))
+        file.seek(0)
+        self.reader = csv.DictReader(file)
+        self.row = next(self.reader)
         self.new_step = 1
         self.parse_row()
+        self.done = False
+
 
     def get_number_of_steps(self):
         row_list = []
         for row in self.reader:
-            row_list += row['step']
-        self.no_profile_steps = max(row_list)
+            row_list.append(int(row['step']))
+        self.no_profile_steps = int(max(row_list))
         return self.no_profile_steps
 
     def next_step(self):
         self.row = next(self.reader)
         self.parse_row()
         self.new_step = 1
+
 
     def parse_row(self):
 
@@ -51,7 +58,7 @@ class profile_state_machine():
         return {'voltage': self.vsp,'ilim_pos': self.ilim_pos, 'ilim_neg': self.ilim_neg, 'output_state': output_state}
 
     def print_current_param(self, output_state = 'NA'):
-        print('step = {} | voltage = {}V / +ilim = {}A / -ilim = {}A / output state = {} : {}'.format(self.step, self.vsp, self.ilim_pos, self.ilim_neg, output_state,self.message))
+        print('step = {}/{} | voltage = {}V / +ilim = {}A / -ilim = {}A / output state = {} : {}'.format(self.step,self.no_profile_steps, self.vsp, self.ilim_pos, self.ilim_neg, output_state,self.message))
 
     def timeout_event(self):
 
@@ -62,12 +69,17 @@ class profile_state_machine():
             self.timer_start = time.time()
             self.new_step = 0
 
+
         if(self.new_step == 0):
             # Read time and trigger a step change when condition is met
             self.current_time = time.time() - self.timer_start
             if(self.current_time > self.value):
-                print("Timeout condition met...")
-                self.next_step()
+                print("{}s > {}s Timeout condition met.".format(self.current_time, self.value))
+                if(self.step == self.no_profile_steps):
+                    print('Test Done.')
+                    self.done = True
+                else:
+                    self.next_step()
 
     def end_current_event(self, battery):
 
@@ -80,7 +92,11 @@ class profile_state_machine():
         if(self.new_step == 0):
             if(battery.current < self.value):
                 print("{} < {} :End Current condition met...".format(battery.current,self.value))
-                self.next_step()
+                if(self.step == self.no_profile_steps):
+                    self.done = True
+                else:
+                    self.next_step()
+
 
     def float_voltage_event(self, battery):
 
@@ -92,8 +108,11 @@ class profile_state_machine():
 
         if(self.new_step == 0):
             if(battery.voltage >= self.value):
-                print("Float Voltage condition met...")
-                self.next_step()
+                print("{}V > {}V Float Voltage condition met...".format(battery.voltage, self.value))
+                if(self.step == self.no_profile_steps):
+                    self.done = True
+                else:
+                    self.next_step()
 
     def output_state_event(self):
 
@@ -111,7 +130,10 @@ class profile_state_machine():
             if(self.new_step == 0):
 
                 print("Charger Output State changed...")
-                self.next_step()
+                if(self.step == self.no_profile_steps):
+                    self.done = True
+                else:
+                    self.next_step()
 
 
 
@@ -135,10 +157,9 @@ if __name__ == '__main__':
     batt = battery()
 
     with open(filename) as file:
-        csv_reader = csv.DictReader(file)
-        profile_reader = profile_state_machine(csv_reader)
+        profile_reader = profile_state_machine(file)
         profile_reader.set_event_function(change_param_test)
-        print(profile_reader.get_number_of_steps())
+
         while(1):
-            #profile_reader.run_profile(batt)
+            profile_reader.run_profile(batt)
             time.sleep(1)

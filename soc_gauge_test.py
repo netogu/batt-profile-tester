@@ -144,7 +144,7 @@ today = datetime.now().timetuple()
 # Functions
 def display_data_task():
     """Display latest data on console."""
-    print('Charger Voltage = {}V / Charger Current = {}A / Batt. Voltage = {}V / Batt. Current = {}mA / Batt. SOC = {}'.format(*(charger.list_data() + batt.list_data())))
+    print('Charger Voltage = {:2.2f}V | Charger Current = {:2.2f}A | Batt. Voltage = {:2.2f}V | Batt. Current = {:2.2f}mA | Batt. SOC = {:2.2f}'.format(*(charger.list_data() + batt.list_data())))
     #print('Charger Voltage = {}V / Charger Current = {}A'.format(*charger.list_data()))
 
 
@@ -187,8 +187,7 @@ def main():
     filename = os.path.join(local_path, args.profile_file)
 
     with open(filename) as profile:
-        profile_reader = csv.DictReader(profile)
-        test_profile = profile_state_machine(profile_reader)
+        test_profile = profile_state_machine(profile)
         test_profile.set_event_function(charger.set_charger_setpoints)
 
 
@@ -251,6 +250,14 @@ def main():
 
                     #Feed profile state machine
                     test_profile.run_profile(batt)
+                    if(test_profile.done):
+                        print('Profile ended.')
+                        print('Data acquisition stopped.')
+                        log_file.close()
+                        print('Shutting Down...')
+                        charger.set_output('OFF')
+                        display_task.cancel()
+                        sys.exit()
 
                     loop_time = time.time() - loop_start
                     loop_wait = loop_time - SAMPLE_RATE

@@ -1,7 +1,13 @@
 step,Ilim_pos,Ilim_neg,Vsp,command,value,message
-0,30,-30,14.4,output_state,1,Turning source ON : charger start
-1,30,-30,14.5,float_voltage,14.5,Charging battery to 14.4V (CC mode)
-2,30,-30,14.5,end_current,500,Charging battery to 14.4V (CV mode)
-3,30,-30,13.8,timeout,30,Changing to float level of 13.8V
+1,30,-30,14.4,output_state,1,Turning source ON : charger start
+2,30,-30,14.5,float_voltage,14.5,Charging battery to 14.4V (CC mode)
+3,30,-30,14.5,end_current,500,Charging battery to 14.4V (CV mode)
 4,30,-30,13.8,output_state,0,Turning source off : battery relaxation
-5,30,-30,13.8,timeout,100.0,Relaxing for 100 seconds
+5,30,-30,13.8,timeout,10.0,Relaxing for 10 seconds
+6,30,-30,13.8,output_state,1,Turning source on
+7,30,-30,12.0,timeout,100.0,Discharge 100 seconds @ -30A
+8,30,-30,13.8,timeout,100.0,Charge for 100 seconds @ 30A
+9,30,-30,12.0,timeout,100.0,Discharge 100 seconds @ -30A
+10,30,-30,13.8,timeout,100.0,Charge for 100 seconds @ 30A
+11,30,-30,13.8,output_state,0,Turning source off : battery relaxation
+12,30,-30,13.8,timeout,10.0,Relaxing for 10 seconds
