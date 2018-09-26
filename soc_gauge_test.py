@@ -172,7 +172,7 @@ def main():
     rm = pyvisa.ResourceManager()
     charger_visa = rm.open_resource(args.charger_visa_name)
     # Open log file
-    filename = args.test_name + '_' + str(today[1]) + '_' + str(today[2]) + '_' + str(today[3]) + '.csv'
+    filename = args.test_name + '_' + str(today[1]) + '_' + str(today[2]) + '_' + str(today[3]) + str(today[4]) + '.csv'
     print("Opening log file as {}".format(filename))
     log_file = open(filename,'w')
     header = "time,batt_voltage,batt_current,batt_soc,charger_voltage,charger_current\n"

@@ -44,7 +44,8 @@ with open(filename) as f:
     batt_soc = batt_soc[window_l:window_r]
     charger_volt = charger_volt[window_l:window_r]
     charger_curr = charger_curr[window_l:window_r]
-
+    print('Test time = {:2.2f}s ({:2.2f}h)'.format(time[-1],time[-1]/3600.0))
+    print('Final Voltage = {:2.2f}V : Final SOC = {:2.2f}%'.format(batt_volt[-1], batt_soc[-1]))
     qmax_as = 38.0 * 3600 # Estimated Capacity on H2P battery
     q = integrate.cumtrapz(batt_curr, time, initial=0)
     soc_calc = 100*(1-(qmax_as - q) / qmax_as) + 100
@@ -56,8 +57,9 @@ with open(filename) as f:
     axs[0].plot(time,batt_volt)
     axs[1].plot(time,batt_curr)
     axs[2].plot(time,batt_soc)
-    axs[2].plot(time,soc_calc+0.5)
-    axs[2].plot(time,soc_calc-0.5)
+    axs[2].plot(time,soc_calc+1)
+    axs[2].plot(time,soc_calc-1)
     axs[2].set_ylim([ylim_min-5, 105])
-
+    mng = plt.get_current_fig_manager()
+    mng.window.showMaximized()
     plt.show()
