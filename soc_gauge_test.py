@@ -25,7 +25,8 @@ class battery:
     data = []
     def __init__(self, name):
         self.name = name
-    def pack_data(self, voltage, current, soc):
+    def pack_data(self, time, voltage, current, soc):
+        self.time = time
         self.voltage = voltage
         self.current = current
         self.soc = soc
@@ -126,17 +127,41 @@ class InfiniteTimer():
             print("Timer never started or failed to initialize.")
 
 # Global Variables
-interface = 'LIN1'
-database = 'a123_h2p_database'
-cluster = 'LISB'
-frames = ['LISB_Frm2_AR', 'LISB_Frm4_AR']
-signals = ['LISB_PackVolt', 'LISB_Bat_Curr', 'LISB_SOC_Absolute']
+# interface = 'LIN1'
+# database = 'a123_h2p_database'
+# cluster = 'LISB'
+# frames = ['LISB_Frm2_AR', 'LISB_Frm4_AR']
+# signals = ['LISB_PackVolt', 'LISB_Bat_Curr', 'LISB_SOC_Absolute']
+#
+
+# GEN1 IBS
+interface = 'LIN2'
+database = 'hella_gen1_ibs'
+cluster = 'Cluster'
+frames = ['IBS_FRM2','IBS_FRM5']
+signals = [
+            'BatteryVoltage',
+            'BatteryCurrent',
+            'StateOfCharge'
+            ]
+schedule_index = 3
+
+# GEN2 IBS
+# interface = 'LIN2'
+# database = 'hella_gen2_ibs'
+# cluster = 'Cluster'
+# frames = ['IBS_UIT','IBS_BZE1']
+# signals = [
+#             'BatteryVoltage',
+#             'BatteryCurrent',
+#             'StateOfCharge'
+#             ]
+# schedule_index = 1
+
 DISPLAY_RATE = 1 # every 1 second
 SAMPLE_RATE = 0.2 # every 200ms
-
-
 # Create Objects
-batt = battery('A123_H2P')
+batt = battery('YUASA_30_GEN1_IBS')
 charger = psu('Keysight', None)
 today = datetime.now().timetuple()
 
@@ -144,7 +169,7 @@ today = datetime.now().timetuple()
 # Functions
 def display_data_task():
     """Display latest data on console."""
-    print('Charger Voltage = {:2.2f}V | Charger Current = {:2.2f}A | Batt. Voltage = {:2.2f}V | Batt. Current = {:2.2f}mA | Batt. SOC = {:2.2f}'.format(*(charger.list_data() + batt.list_data())))
+    print('{:2.2f}s | Charger Voltage = {:2.2f}V | Charger Current = {:2.2f}A | Batt. Voltage = {:2.2f}V | Batt. Current = {:2.2f}A | Batt. SOC = {:2.2f}'.format(batt.time,*(charger.list_data() + batt.list_data())))
     #print('Charger Voltage = {}V / Charger Current = {}A'.format(*charger.list_data()))
 
 
@@ -198,7 +223,7 @@ def main():
                 session.intf.lin_term = constants.LinTerm.ON
                 session.intf.lin_master = True
 
-                def read_data_task():
+                def read_data_task(time):
                     """Aquires and Converts Telemetry data on the SCPI and LIN buses."""
                     # Read Telemetry
                     charger.read_data()
@@ -206,11 +231,11 @@ def main():
 
                     # Format Data
                     converted_signals = converter.convert_frames_to_signals(frame)
-                    batt.pack_data(*[float(v) for (_, v) in converted_signals])
+                    batt.pack_data(time, *[float(v) for (_, v) in converted_signals])
 
                 # Set the schedule. This will also automatically enable master mode.
                 session.start()
-                session.change_lin_schedule(3)
+                session.change_lin_schedule(schedule_index)
                 time.sleep(1)
 
                 # Setup charger
@@ -241,7 +266,7 @@ def main():
                 while(1):
                     loop_start = time.time()
                     sample_time = loop_start - start_time
-                    read_data_task()
+                    read_data_task(sample_time)
 
 
                     # Logging data
@@ -260,7 +285,7 @@ def main():
                         sys.exit()
 
                     loop_time = time.time() - loop_start
-                    loop_wait = loop_time - SAMPLE_RATE
+                    loop_wait = SAMPLE_RATE - loop_time
                     if(loop_wait < 0):
                         loop_wait = 0
                     time.sleep(loop_wait)

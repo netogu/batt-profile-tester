@@ -21,7 +21,7 @@ with open(filename) as f:
     for row in reader:
         time.append(float(row['time']))
         batt_volt.append(float(row['batt_voltage']))
-        batt_curr.append(float(row['batt_current'])/1000.0)
+        batt_curr.append(float(row['batt_current']))
         batt_soc.append(float(row['batt_soc']))
         charger_volt.append(float(row['charger_voltage']))
         charger_curr.append(float(row['charger_current']))
@@ -35,7 +35,7 @@ with open(filename) as f:
     # charger_curr = np.array(charger_curr)
 
     # Start data where 100% SOC was reached
-    window_l = min([i for i,v in enumerate(batt_soc) if v >= 100.0])
+    window_l = min([i for i,v in enumerate(batt_soc) if v >= 50.0])
     window_r = len(time)
     print(window_l, window_r)
     time = time[window_l:window_r]

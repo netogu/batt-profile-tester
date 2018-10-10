@@ -7,22 +7,43 @@ from nixnet import constants
 from nixnet import types
 from nixnet import convert
 
+ibs_name = 'IBS_GEN2'
 
-# Global Variables
-interface = 'LIN2'
-database = 'hella_gen1_ibs'
-cluster = 'Cluster'
-frames = ['IBS_FRM2','IBS_FRM5','IBS_FRM6']
-signals = [
-            'BatteryVoltage',
-            'BatteryCurrent',
-            'BatteryTemperature',
-            'StateOfCharge',
-            'NominalCapacity',
-            'Recalibrated'
-            ]
+
+if ibs_name == 'IBS_GEN1':
+    # GEN1
+    #Global Variables
+    interface = 'LIN2'
+    database = 'hella_gen1_ibs'
+    cluster = 'Cluster'
+    frames = ['IBS_FRM2','IBS_FRM5','IBS_FRM6']
+    signals = [
+                'BatteryVoltage',
+                'BatteryCurrent',
+                'BatteryTemperature',
+                'StateOfCharge',
+                'NominalCapacity',
+                'Recalibrated'
+                ]
+    lin_schedule = 0
+else:
+    # GEN2 IBS
+    interface = 'LIN2'
+    database = 'hella_gen2_ibs'
+    cluster = 'Cluster'
+    frames = ['IBS_UIT','IBS_BZE1','IBS_BZE2']
+    signals = [
+                'BatteryVoltage',
+                'BatteryCurrent',
+                'BatteryTemperature',
+                'StateOfCharge',
+                'NominalCapacity',
+                'Recalibrated'
+                ]
+    lin_schedule = 1
+
 DISPLAY_RATE = 1 # every 1 second
-SAMPLE_RATE = 0.2 # every 200ms
+SAMPLE_RATE = 1 # every 200ms
 
 class InfiniteTimer():
     """A Timer class that does not stop, unless you want it to."""
@@ -107,7 +128,8 @@ def main():
 
             # Set the schedule. This will also automatically enable master mode.
             session.start()
-            session.change_lin_schedule(3)
+
+            session.change_lin_schedule(lin_schedule)
             time.sleep(1)
 
 
@@ -135,9 +157,10 @@ def main():
                 sample_time = loop_start - start_time
 
                 read_data_task()
-
+                # status = session.num_unused
+                # print(status)
                 loop_time = time.time() - loop_start
-                loop_wait = loop_time - SAMPLE_RATE
+                loop_wait = SAMPLE_RATE - loop_time
                 if(loop_wait < 0):
                     loop_wait = 0
                 time.sleep(loop_wait)

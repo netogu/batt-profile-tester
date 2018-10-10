@@ -13,8 +13,10 @@ class profile_state_machine():
         self.reader = csv.DictReader(file)
         self.row = next(self.reader)
         self.new_step = 1
+        self.output_status = 'OFF'
         self.parse_row()
         self.done = False
+
 
 
     def get_number_of_steps(self):

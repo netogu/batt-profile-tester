@@ -63,12 +63,10 @@ class IBS200_GEN1():
         self.master_payloads['U0_MinMax_Write'][6] = u0_max_high
         self.master_payloads['U0_MinMax_Write'][7] = u0_max_low
 
-    def set_ibatt_quiescent(self, iqbatt = None, ichargemin = None):
+    def set_ibatt_quiescent(self, iqbatt = None):
         """ Set battery quiescent current in Master Req payload."""
 
         self.master_payloads['IQbatt_Write'][4] = iqbatt
-        self.master_payloads['IQbatt_Write'][5] = ichargemin
-
 
 class IBS_GLOBAL_GEN2():
     """ Define HELLA IBS GLOBAL GEN2 Object."""
@@ -80,7 +78,6 @@ class IBS_GLOBAL_GEN2():
         self.master_req_output_frames = ['MasterReq']
         self.slave_resp_input_frames =  ['SlaveResp']
         self.lin_diag_schedule = 0
-        self.lin_normal_schedule = 1
         self.MasterReqId = 0x3C
         self.master_payloads = {
         'Empty_Frame': [0x00, 0x00, 0x00, 0x00 ,0x00, 0x00, 0x00, 0x00],
@@ -132,6 +129,11 @@ class IBS_GLOBAL_GEN2():
             print("Error: Wrong Battery Type")
 
 
+
+
+
+
+
 def exit_signal_handler(signal, frame):
     print('Shutting Down...')
     sys.exit()
@@ -144,18 +146,18 @@ def main():
     # User Defined Configuration
 
     C_NOMINAL = 30 #Ah
-    U0_MIN = 11200 #mV
-    U0_MAX = 12650 #mV
-    IQBATT = 250 #mA(100mA Default)
-    ICHRG_MIN = 50 #mA (50mA Default)
+    U0_MIN = 11250 #mV
+    U0_MAX = 12800 #mV
+    IQBATT = 200 #mA(100mA Default)
     BATT_TECH = 'AGM'
 
     # Set Master payloads
 
     ibs.set_nominal_capacity(capacity_ah=C_NOMINAL)
     ibs.set_u0_minmax(u0_min = U0_MIN, u0_max = U0_MAX)
-    #ibs.set_ibatt_quiescent(iqbatt = IQBATT, ichargemin = ICHRG_MIN)
-    #ibs.set_batt_tech(batt_tech = 'AGM')
+    #ibs.set_ibatt_quiescent(iqbatt = IQBATT)
+    ibs.set_batt_tech(batt_tech = 'AGM')
+
 
 
     # Setup LIN Sessions
@@ -165,7 +167,7 @@ def main():
             output_session.intf.lin_term = constants.LinTerm.ON
             output_session.intf.lin_master = True
 
-            output_session.change_lin_schedule(ibs.lin_diag_schedule)
+            output_session.change_lin_schedule(lin_schedule)
 
             def write_LIN(session, id, payload):
                 """ Write LIN Frame to XNET Session."""
@@ -186,68 +188,59 @@ def main():
 
             input_session.flush()
             # Wake up LIN Bus
-            print('0) Waking up LIN Bus...')
+            print('Waking up LIN Bus...')
             write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['Empty_Frame'])
             slave_frame, = input_session.frames.read(frame_type=types.LinFrame)
             time.sleep(0.1)
 
-
-            # Configure IBS
             print('Check Table State...')
+            # frame_count = input_session.frames.count()
+            # print('frames in buffer = {}'.format(frame_count))
+
             write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattTable_State'])
-            time.sleep(0.35)
+            time.sleep(0.25)
             read_LIN(input_session)
 
-            print('Switch Table OFF...')
-            ibs.set_switch_table_OnOff(state='Off')
-            write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattTable_OnOff'])
-            time.sleep(0.35)
-            read_LIN(input_session)
 
-            print('Change C_NOMINAL...')
-            write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattCap_Write'])
-            time.sleep(0.35)
-            read_LIN(input_session)
-
-            print('Change U0 MIN/MAX...')
-            write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['U0_MinMax_Write'])
-            time.sleep(0.35)
-            read_LIN(input_session)
-
-            # print('Change Batt IQ/Icharge_min...')
-            # write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['IQbatt_Write'])
-            # time.sleep(0.25)
-            # read_LIN(input_session)
-
-            print('Allow IBS to save all parameters (10s wait)...')
-
-            print '['
-            for i in range(0,100):
-                print '#',
-                time.sleep(0.1)
-            print(']\n')
 
             print('Check Table State...')
             write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattTable_State'])
-            time.sleep(0.35)
+            time.sleep(0.25)
             read_LIN(input_session)
 
             print('Check C_Nominal...')
             write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattCap_Read'])
-            time.sleep(0.35)
+            time.sleep(0.25)
+            read_LIN(input_session)
+
+            print('Check Batt Type...')
+            write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['BattType_Read'])
+            time.sleep(0.25)
             read_LIN(input_session)
 
             print('Check U0 MIN/MAX...')
             write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['U0_MinMax_Read'])
-            time.sleep(0.35)
+            time.sleep(0.25)
             read_LIN(input_session)
 
-            # print('Check Batt IQ/Charge_min...')
-            # write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['IQbatt_Read'])
-            # time.sleep(0.25)
-            # read_LIN(input_session)
+            print('Check Batt Tech...')
+            write_LIN(output_session, ibs.MasterReqId, ibs.master_payloads['Batt_Tech_Read'])
+            time.sleep(0.25)
+            read_LIN(input_session)
+
+
 
             print('Done!')
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
